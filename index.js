@@ -6,6 +6,8 @@ const app = express();
 
 app.use(express.json());
 
+app.use(express.static('dist'));
+
 app.use(cors());
 
 morgan.token('body', req => {
@@ -30,7 +32,7 @@ const requestLogger = (request, response, next) => {
 
 app.use(requestLogger);
 
-const persons = [
+let persons = [
     {
         "id": 1,
         "name": "Arto Hellas",
