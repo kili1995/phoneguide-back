@@ -1,0 +1,22 @@
+{
+  "name": "phoneguideback",
+  "version": "1.0.0",
+  "description": "API Rest for phone guide",
+  "license": "ISC",
+  "author": "Jorge Capello",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
