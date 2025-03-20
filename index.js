@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
-const Person = require('./models/peson');
+const Person = require('./models/person');
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -23,6 +23,15 @@ morgan.token('error', (req, res) => {
 
 const messageMiddleware = morgan(':method :url :status :res[content-length] - :response-time ms :body :error');
 
+const catchMongoDBError = (response, action, error, id = null) => {
+    let message = `${action} error. ${error.message}.`;
+    if(id){
+        message += ` id ${id}`;
+    }
+    console.log(message);
+    response.status(500).end();
+}
+
 app.use(messageMiddleware);
 
 const requestLogger = (request, response, next) => {
@@ -38,14 +47,17 @@ app.use(requestLogger);
 app.get('/api/persons', (request, response) => {
     Person.find({}).then(result => {
         response.json(result);
-    })
+    }).catch(error => catchMongoDBError(response, 'get all', error));
 });
 
 app.get('/api/persons/:id', (request, response) => {
     const id = request.params.id;
-    Person.findById(id).then((result) => {
+    Person.findById(id).then((person) => {
+        if(!person){
+            response.status(404).end();
+        }
         response.json(result);
-    }).catch(error => console.log("Error getting person with id: ", id, ". ", error.message));
+    }).catch(error => catchMongoDBError(response, 'get by id', error, id));
 });
 
 app.get('/info', (request, response) => {
@@ -56,7 +68,7 @@ app.get('/info', (request, response) => {
             <br />
             <p>${now.toLocaleString()}</p>        
         `);
-    });
+    }).catch(error => catchMongoDBError(response, 'get info page', error));
 });
 
 app.delete('/api/persons/:id', (request, response) => {
@@ -67,9 +79,8 @@ app.delete('/api/persons/:id', (request, response) => {
 
     Person.findByIdAndDelete(id).then(result => {
         console.log('Person deleted successfuly');
-        console.log(result);
         response.status(204).end();
-    });
+    }).catch(error => catchMongoDBError(response, 'delete', error, id));
 });
 
 app.post('/api/persons', (request, response) => {
@@ -95,8 +106,8 @@ app.post('/api/persons', (request, response) => {
         person.save().then(result => {
             console.log('Person saved successfuly');
             response.json(result);
-        })
-    });    
+        }).catch(error => catchMongoDBError(response, 'create', error));
+    }).catch(error => catchMongoDBError(response, 'get by name', error));    
 });
 
 app.put('/api/persons/:id', (request, response) => {
@@ -106,13 +117,9 @@ app.put('/api/persons/:id', (request, response) => {
         if(person){
             Person.updateOne({_id: id}, {number: body.number, name: person.name}).then(result => {
                 console.log("Number updated successfuly");
-            }).catch(error => {
-                console.log("error updating person with id", id, ". Error: ", error.message);
-            });
+            }).catch(error => catchMongoDBError(response, 'update', error, id));
         }
-    }).catch(error => {
-        console.log("error getting person with id", id, ". Error: ", error.message);
-    });
+    }).catch(error => catchMongoDBError(response, 'get by id', error, id));
 })
 
 const unknownEndpoint = (request, response) => {
