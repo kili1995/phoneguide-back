@@ -25,7 +25,7 @@ const messageMiddleware = morgan(':method :url :status :res[content-length] - :r
 
 const catchMongoDBError = (response, action, error, id = null) => {
     let message = `${action} error. ${error.message}.`;
-    if(id){
+    if (id) {
         message += ` id ${id}`;
     }
     console.log(message);
@@ -50,14 +50,14 @@ app.get('/api/persons', (request, response) => {
     }).catch(error => catchMongoDBError(response, 'get all', error));
 });
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
     const id = request.params.id;
     Person.findById(id).then((person) => {
-        if(!person){
+        if (!person) {
             response.status(404).end();
         }
-        response.json(result);
-    }).catch(error => catchMongoDBError(response, 'get by id', error, id));
+        response.json(person);
+    }).catch(error => next(error));
 });
 
 app.get('/info', (request, response) => {
@@ -107,15 +107,15 @@ app.post('/api/persons', (request, response) => {
             console.log('Person saved successfuly');
             response.json(result);
         }).catch(error => catchMongoDBError(response, 'create', error));
-    }).catch(error => catchMongoDBError(response, 'get by name', error));    
+    }).catch(error => catchMongoDBError(response, 'get by name', error));
 });
 
 app.put('/api/persons/:id', (request, response) => {
     const id = request.params.id;
     const body = request.body;
     Person.findById(id).then(person => {
-        if(person){
-            Person.updateOne({_id: id}, {number: body.number, name: person.name}).then(result => {
+        if (person) {
+            Person.updateOne({ _id: id }, { number: body.number, name: person.name }).then(result => {
                 console.log("Number updated successfuly");
             }).catch(error => catchMongoDBError(response, 'update', error, id));
         }
@@ -126,6 +126,18 @@ const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 };
 app.use(unknownEndpoint);
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' });
+    }
+
+    next(error);
+}
+
+app.use(errorHandler)
 
 
 app.listen(PORT, () => {
